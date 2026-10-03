@@ -15,6 +15,17 @@ This project investigates why customers don't return and what the business can d
 3. Which customer segments and regions offer the biggest retention opportunity?
 <!-- CHANGE: edit or add questions as your analysis evolves -->
 
+## Data source
+
+Brazilian E-Commerce Public Dataset by Olist (Kaggle):
+https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce
+
+- About 100k orders from 2016 to 2018, across 9 relational CSV files
+- The CSVs are not stored in this repo. To reproduce the project, download the dataset
+  from Kaggle and extract the files into `data/raw/`
+- Raw files are never edited; cleaned outputs go to `data/processed/`
+
+
 ## Key Findings
 <!-- CHANGE: Add after Phase 3, using real numbers from YOUR analysis. Example:
 - X% of customers purchased only once
@@ -84,6 +95,8 @@ _Coming soon._
 ## About Me
 <!-- CHANGE: Your name, one line about yourself, LinkedIn link, email -->
 **Karan Patel**
+
+
 **Data Analyst skilled in Python, SQL, Power BI, and Tableau, focused on data visualization, business insights, ETL, and solving real-world business problems through data.**
 
 Linkdin: http://www.linkedin.com/in/karan-patel-5a2462271
