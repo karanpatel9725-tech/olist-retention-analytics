@@ -218,3 +218,15 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Data (large files, dataset has its own terms on Kaggle)
+data/raw/*.csv
+data/processed/*.csv
+
+# Secrets
+.env
+
+# Notebooks and OS clutter
+.ipynb_checkpoints/
+.DS_Store
+Thumbs.db
