@@ -92,3 +92,62 @@ SELECT review_id, order_id, review_score,
 FROM order_reviews
 WHERE order_id = '03c939fd7fd3b38f8485a0f95798f1f6'
 ORDER BY review_creation_date;
+-- INSIGHT (Query 7): Order 03c939fd... has 3 reviews with 3 different review_ids,
+-- scores 3, 3, 4, written on 2018-03-06, 2018-03-20 and 2018-03-29.
+-- So a repeated order_id means the customer reviewed the same order again later,
+-- at least in this one case. Only one order was inspected.
+-- CANDIDATE RULE: keep the most recent review per order (latest review_creation_date).
+-- Not final until we check how often scores differ across all repeated orders.
+-- OPEN: the 814 repeated review_id values (Query 5) are not yet investigated.
+
+
+-- Query 8: among orders with more than one review, how many have different scores?
+SELECT COUNT(*) AS orders_with_multiple_reviews,
+       SUM(min_score <> max_score) AS orders_with_different_scores
+FROM (
+    SELECT order_id,
+           MIN(review_score) AS min_score,
+           MAX(review_score) AS max_score
+    FROM order_reviews
+    GROUP BY order_id
+    HAVING COUNT(*) > 1
+) AS t;
+-- INSIGHT (Query 8): 547 orders have more than one review (about 0.55% of 98,673
+-- reviewed orders). 202 of them (37%) have differing scores; 345 repeat the same score.
+-- The 551 surplus rows = 543 orders with 2 reviews + 4 orders with 3 reviews.
+-- DECISION: keep one review per order, the latest by review_creation_date
+-- (tie-break on review_answer_timestamp). Impact on average scores is tiny (202 orders),
+-- but without this step joins would duplicate 547 orders.
+
+
+-- Query 9: review_ids that appear more than once
+SELECT review_id,
+       COUNT(*) AS review_rows,
+       COUNT(DISTINCT order_id) AS distinct_orders
+FROM order_reviews
+GROUP BY review_id
+HAVING COUNT(*) > 1
+ORDER BY review_rows DESC
+LIMIT 10;
+-- INSIGHT (Query 9): Some review_ids are attached to several different orders. In the top 10
+-- by row count, every review_id appears 3 times across 3 distinct orders.
+-- Only the top 10 were inspected, so the total number of shared review_ids is not yet counted.
+-- This is a different problem from Query 8 (one order with several reviews).
+-- DECISION: review_id is not a usable key. Deduplicate per order_id (latest review) and
+-- join reviews on order_id only.
+
+
+-- Query 10: the orders sharing one review_id, and their customers
+SELECT r.review_id, r.order_id, c.customer_unique_id,
+       o.order_purchase_timestamp, r.review_score
+FROM order_reviews r
+JOIN orders o ON r.order_id = o.order_id
+JOIN customers c ON o.customer_id = c.customer_id
+WHERE r.review_id = '08528f70f579f0c830189efc523d2182'
+ORDER BY o.order_purchase_timestamp;
+-- INSIGHT (Query 10): review_id 08528f70... is attached to 3 orders (2018-07-24, 2018-08-07,
+-- 2018-08-17) that all belong to the same customer_unique_id, each with score 1.
+-- So at least here, a shared review_id means one person's review recorded on several of
+-- their own orders. Cause unknown; only one review_id was inspected.
+-- Also: this customer is a repeat buyer (3 orders in under a month).
+-- Convention check: customer_unique_id, not customer_id, identifies the person.
