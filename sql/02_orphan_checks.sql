@@ -29,3 +29,11 @@ SELECT 'order_reviews -> orders' AS check_name, COUNT(*) AS orphan_rows
 FROM order_reviews r
 LEFT JOIN orders o ON r.order_id = o.order_id
 WHERE o.order_id IS NULL;
+
+
+-- Query 2: number of orders per month
+SELECT DATE_FORMAT(order_purchase_timestamp, '%Y-%m') AS order_month,
+       COUNT(*) AS orders
+FROM orders
+GROUP BY DATE_FORMAT(order_purchase_timestamp, '%Y-%m')
+ORDER BY DATE_FORMAT(order_purchase_timestamp, '%Y-%m');
