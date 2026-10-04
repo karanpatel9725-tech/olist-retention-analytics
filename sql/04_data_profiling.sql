@@ -151,3 +151,54 @@ ORDER BY o.order_purchase_timestamp;
 -- their own orders. Cause unknown; only one review_id was inspected.
 -- Also: this customer is a repeat buyer (3 orders in under a month).
 -- Convention check: customer_unique_id, not customer_id, identifies the person.
+
+
+-- Query 11: customer rows vs real people
+SELECT COUNT(*) AS customer_rows,
+       COUNT(DISTINCT customer_id) AS distinct_customer_ids,
+       COUNT(DISTINCT customer_unique_id) AS distinct_people
+FROM customers;
+-- INSIGHT (Query 11): customers has 99,441 rows, 99,441 distinct customer_id and 96,096
+-- distinct customer_unique_id. customer_id is created per order, so it is NOT a person.
+-- 3,345 rows are repeat appearances of someone already counted.
+-- BOUND (not the final figure): at most 3,345 / 96,096 = 3.48% of people can have 2+ orders,
+-- so at least about 96.5% have exactly one order. Covers all statuses, not yet filtered.
+-- RULE: always count customers with customer_unique_id.
+
+
+-- Query 12: how many people have 1, 2, 3... orders (all statuses)
+SELECT orders_per_person, COUNT(*) AS people
+FROM (
+    SELECT c.customer_unique_id, COUNT(*) AS orders_per_person
+    FROM orders o
+    JOIN customers c ON o.customer_id = c.customer_id
+    GROUP BY c.customer_unique_id
+) AS t
+GROUP BY orders_per_person
+ORDER BY orders_per_person;
+-- INSIGHT (Query 12): Orders per person (all statuses, 96,096 people, 99,441 orders):
+-- 1 order: 93,099 (96.9%) | 2: 2,745 | 3: 203 | 4: 30 | 5: 8 | 6: 6 | 7: 3 | 9: 1 | 17: 1.
+-- 2,997 people (3.1%) ordered more than once. The ~97% one-time-buyer claim is CONFIRMED
+-- for this definition (all statuses, whole period, ~2 years of data).
+-- Totals check: people sum to 96,096 and orders sum to 99,441.
+-- CAVEATS: includes canceled/unavailable orders; short window; the person with 17 orders
+-- has not been investigated.
+
+
+-- Query 13: orders per person, excluding orders that never reached a customer
+SELECT orders_per_person, COUNT(*) AS people
+FROM (
+    SELECT c.customer_unique_id, COUNT(*) AS orders_per_person
+    FROM orders o
+    JOIN customers c ON o.customer_id = c.customer_id
+    WHERE o.order_status NOT IN ('canceled', 'unavailable')
+    GROUP BY c.customer_unique_id
+) AS t
+GROUP BY orders_per_person
+ORDER BY orders_per_person;
+-- INSIGHT (Query 13): Excluding canceled and unavailable orders: 94,990 people, 98,207 orders.
+-- 1 order: 92,102 (96.96%) | 2: 2,652 | 3: 188 | 4: 29 | 5: 9 | 6: 5 | 7: 3 | 9: 1 | 16: 1.
+-- 2,888 people (3.04%) ordered more than once, vs 3.12% in Query 12.
+-- The ~97% one-time-buyer claim holds under both definitions (difference under 0.1 point).
+-- 1,106 people had only canceled/unavailable orders and drop out.
+-- CAVEATS: ~2 year window; the person with 16 orders is not yet investigated.
