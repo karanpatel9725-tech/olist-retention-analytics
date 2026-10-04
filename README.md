@@ -3,11 +3,12 @@
 <!-- CHANGE: Write 2-3 lines in your own words describing the project and its main result.
 Fill this in LAST, once you have real findings. -->
 
-> **Status:** Phase 0 (setup) complete. Phase 1 (SQL and Excel fundamentals) starting.
+> **Status:** Phase 0 (setup) complete. Phase 1 (SQL and Excel fundamentals) in progress:
+> database built and profiled; business-question queries next.
 
 ## Business Problem
-Olist is a Brazilian e-commerce marketplace where about 97% of customers reportedly buy only once
-(to be verified on the data in Phase 1).
+Olist is a Brazilian e-commerce marketplace where almost all customers buy only once
+(confirmed on the data: about 97%, see Key Findings).
 This project investigates why customers don't return and what the business can do about it.
 
 **Key questions**
@@ -20,16 +21,35 @@ This project investigates why customers don't return and what the business can d
 
 [Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce) (Kaggle).
 
-- About 100k orders from 2016 to 2018, across 9 relational CSV files
+- 99,441 orders from September 2016 to October 2018, across 9 relational CSV files
 - The CSVs are not stored in this repo. To reproduce the project, download the dataset
   from Kaggle and extract the files into `data/raw/`
 - Raw files are never edited; cleaned outputs go to `data/processed/`
 
-## Key Findings
-<!-- CHANGE: Add after Phase 3, using real numbers from YOUR analysis. Example:
-- X% of customers purchased only once
-- Late deliveries lowered average review score from X to Y -->
-_Coming soon._
+## Database Design
+
+![ER diagram](images/er_diagram.png)
+
+Nine tables in MySQL. Six foreign keys link orders to customers, order items to orders,
+products and sellers, and payments and reviews to orders. Before adding the keys, I checked
+all six relationships for orphan rows (rows pointing to a parent that does not exist) and
+found none. `geolocation` and `product_category_translation` are lookup tables without
+foreign keys.
+
+## Key Findings (so far)
+All figures come from the profiling queries in `sql/04_data_profiling.sql`.
+
+- **About 97% of customers buy only once.** Of 96,096 real customers, 93,099 (96.9%) placed
+  exactly one order. Excluding canceled and unavailable orders, it is 92,102 of 94,990 (96.96%).
+- **customer_id is not a person.** It is created per order (99,441 values vs 96,096 real
+  customers). All customer counts use `customer_unique_id`.
+- **97.0% of orders are delivered** (96,478 of 99,441). 625 are canceled and 609 unavailable.
+- **Volume is only reliable from January 2017 to August 2018.** 2016 is nearly empty
+  (November 2016 is missing) and September and October 2018 have only 16 and 4 orders.
+- **Reviews needed cleaning.** 547 orders have more than one review, and some review IDs are
+  shared across orders. Reviews are reduced to one per order (the latest) before any join.
+
+_Delivery impact, cohort retention and segmentation results will be added after Phase 3._
 
 ## Dashboard Preview
 <!-- CHANGE: Add screenshots after Phase 5, e.g. ![Overview](images/dashboard_overview.png) -->
@@ -40,7 +60,7 @@ _Coming soon._
 | Purpose | Tool |
 |---|---|
 | Database | MySQL 8.0 (developed on 8.0.43) |
-| SQL client | VS Code "Database Client" extension; MySQL Workbench for one-off tasks (ER diagram) |
+| SQL client | VS Code "Database Client" extension; MySQL Workbench for the ER diagram |
 | Programming | Python 3.x (pandas, NumPy, matplotlib, seaborn, scikit-learn, SciPy, XGBoost, SQLAlchemy, PyMySQL, python-dotenv) |
 | Notebooks / editor | VS Code with Jupyter |
 | Dashboard | Power BI Desktop |
@@ -68,14 +88,16 @@ _Coming soon._
 ```powershell
    python scripts\test_connection.py
 ```
-   Expected output: `Connected to database: olist | MySQL version: 8.x.x`
 
 ## How to Run
 <!-- CHANGE: Update as scripts and notebooks are added. -->
 1. Complete the Setup section above.
-2. Load the raw CSVs into MySQL with the loader script in `scripts/` _(added in Phase 1)_.
-3. Run the SQL files in `sql/` in numbered order.
-4. Run the notebooks in `notebooks/` in numbered order.
+2. Run `sql/01_create_tables.sql`, then load the CSVs: `python scripts\load_data.py`.
+3. Run `sql/02_orphan_checks.sql` and `sql/03_add_foreign_keys.sql`.
+4. Run `sql/04_data_profiling.sql` (each query has an INSIGHT comment with the result).
+5. Further SQL files and the notebooks in `notebooks/` will be added in numbered order.
+
+Note: `load_data.py` is meant for the first load, before the foreign keys exist.
 
 ## Project Structure
 ```
@@ -88,7 +110,7 @@ olist-retention-analytics/
 ├── notebooks/          # Python cleaning, EDA, analysis, modeling
 ├── dashboard/          # Power BI file
 ├── reports/            # business summary
-├── images/             # screenshots and diagrams
+├── images/             # screenshots and diagrams (ER diagram)
 ├── PROJECT_CONTEXT.md  # running project notes
 ├── .env.example        # database settings template (copy to .env)
 └── README.md
@@ -96,7 +118,7 @@ olist-retention-analytics/
 
 ## Approach
 <!-- CHANGE: Fill in as you complete each phase. Keep it short and specific. -->
-1. **SQL analysis:** _in progress_
+1. **SQL analysis:** database built, verified and profiled; business-question queries in progress
 2. **Python cleaning & EDA:** _to be completed_
 3. **Cohort, RFM and delivery impact analysis:** _to be completed_
 4. **Predictive modeling:** _to be completed_
@@ -107,8 +129,11 @@ olist-retention-analytics/
 _Coming soon._
 
 ## Limitations
-<!-- CHANGE: Be honest, e.g. class imbalance, only two years of data, no marketing data. -->
-_Coming soon._
+<!-- CHANGE: Be honest, e.g. class imbalance, only two years of data, no marketing data. Extend as the project goes on. -->
+- Only about two years of data. "Buys once" means once within that window, not for life.
+- Customers who first bought late in the period had little time to return, which lowers the measured repeat rate.
+- 2016 and the last two months of 2018 are incomplete and are excluded from cohort analysis.
+- No marketing or price data.
 
 ## About Me
 **Karan Patel**
