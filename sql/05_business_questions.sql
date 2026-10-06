@@ -192,3 +192,26 @@ ORDER BY paid DESC;
 -- orders used more than one payment type (combinations not checked).
 -- Rough paid per order: voucher about 93, debit_card about 140, boleto about 144,
 -- credit_card about 163.   
+
+
+
+-- Query 11: top 10 states by revenue (delivered orders, price + freight)
+SELECT c.customer_state,
+       COUNT(DISTINCT o.order_id) AS orders,
+       ROUND(SUM(oi.price + oi.freight_value), 2) AS revenue,
+       ROUND(100 * SUM(oi.price + oi.freight_value)
+             / SUM(SUM(oi.price + oi.freight_value)) OVER (), 1) AS pct_of_total
+FROM orders o
+JOIN customers c ON o.customer_id = c.customer_id
+JOIN order_items oi ON o.order_id = oi.order_id
+WHERE o.order_status = 'delivered'
+GROUP BY c.customer_state
+ORDER BY revenue DESC
+LIMIT 10;
+-- INSIGHT (Query 11): Top 10 customer states by revenue (delivered, price + freight):
+-- SP 5,769,703.15 (37.4%, 40,501 orders); RJ 2,055,401.57 (13.3%, 12,350); MG 1,818,891.67
+-- (11.8%, 11,354); RS 861,472.79 (5.6%); PR 781,708.80 (5.1%); SC 595,127.78 (3.9%);
+-- BA 591,137.81 (3.8%); DF 346,123.35 (2.2%); GO 334,212.35 (2.2%); ES 317,657.93 (2.1%).
+-- SP + RJ + MG = 62.5% of revenue; the top 10 = 87.4% of revenue and 90.5% of delivered orders.
+-- Revenue per order is lowest in SP (about 142.5) and highest in BA (about 181.6); cause not known.
+-- State = customer location, not seller location.
