@@ -215,3 +215,74 @@ LIMIT 10;
 -- SP + RJ + MG = 62.5% of revenue; the top 10 = 87.4% of revenue and 90.5% of delivered orders.
 -- Revenue per order is lowest in SP (about 142.5) and highest in BA (about 181.6); cause not known.
 -- State = customer location, not seller location.
+
+
+
+-- Query 12: delivery time and late deliveries (delivered orders with a delivery date)
+SELECT COUNT(*) AS orders,
+       ROUND(AVG(DATEDIFF(order_delivered_customer_date, order_purchase_timestamp)), 1) AS avg_days_to_deliver,
+       ROUND(AVG(DATEDIFF(order_estimated_delivery_date, order_purchase_timestamp)), 1) AS avg_days_promised,
+       ROUND(100 * AVG(order_delivered_customer_date > order_estimated_delivery_date), 1) AS pct_late
+FROM orders
+WHERE order_status = 'delivered'
+  AND order_delivered_customer_date IS NOT NULL;
+-- INSIGHT (Query 12): Delivered orders with a delivery date: 96,470.
+-- Average time to deliver 12.5 days vs average promised 24.4 days (about 12 days earlier
+-- than promised on average). 8.1% of orders arrived after the estimated date
+-- (about 7,800 orders, rough). 
+-- NOTE: the late test compares full date and time, so same-day arrivals after the promised
+-- time count as late; days use DATEDIFF (whole days). Averages hide the spread; the
+-- slowest orders have not been examined. Effect of lateness on reviews and repeat
+-- purchases is not tested yet.
+
+
+-- Query 13: delivery time and late share by customer state
+SELECT c.customer_state,
+       COUNT(*) AS orders,
+       ROUND(AVG(DATEDIFF(o.order_delivered_customer_date, o.order_purchase_timestamp)), 1) AS avg_days_to_deliver,
+       ROUND(100 * AVG(o.order_delivered_customer_date > o.order_estimated_delivery_date), 1) AS pct_late
+FROM orders o
+JOIN customers c ON o.customer_id = c.customer_id
+WHERE o.order_status = 'delivered'
+  AND o.order_delivered_customer_date IS NOT NULL
+GROUP BY c.customer_state
+ORDER BY pct_late DESC;
+-- INSIGHT (Query 13): Delivery by customer state (delivered orders with a delivery date,
+-- 27 states, 96,470 orders). Highest late share: AL 23.9% (397 orders), MA 19.7% (717),
+-- PI 16.0% (476), CE 15.3% (1,279), SE 15.2% (335), BA 14.0% (3,256), RJ 13.5% (12,350).
+-- SP (40,494 orders) is 5.9% late, 8.7 days on average; MG 5.6%; PR 5.0%.
+-- Slowest averages: RR 29.3 days (41 orders), AP 27.2 (67), AM 26.4 (145), AL 24.5.
+-- Long average time is not the same as late: AP 4.5% and AM 4.1% late despite 27 and 26 days
+-- (possibly more generous promised dates; not checked).
+-- Rough late orders (share x orders): SP about 2,390, RJ about 1,670, BA about 460.
+-- Small samples (RR, AP, AC, AM) are unreliable. Effect of lateness on reviews and repeat
+-- purchases not yet tested, so no recommendation yet.
+
+
+
+-- Query 14: average review score, on-time vs late (delivered orders, one review per order)
+WITH latest_review AS (
+    SELECT order_id, review_score,
+           ROW_NUMBER() OVER (PARTITION BY order_id
+                              ORDER BY review_creation_date DESC,
+                                       review_answer_timestamp DESC) AS rn
+    FROM order_reviews
+)
+SELECT CASE WHEN o.order_delivered_customer_date > o.order_estimated_delivery_date
+            THEN 'late' ELSE 'on_time' END AS delivery_status,
+       COUNT(*) AS orders,
+       ROUND(AVG(r.review_score), 2) AS avg_review_score
+FROM orders o
+JOIN latest_review r ON o.order_id = r.order_id AND r.rn = 1
+WHERE o.order_status = 'delivered'
+  AND o.order_delivered_customer_date IS NOT NULL
+GROUP BY delivery_status;
+-- INSIGHT (Query 14): Average review score by delivery status (delivered orders with a
+-- delivery date and a review; one review per order = latest, via ROW_NUMBER in a CTE).
+-- on_time: 88,163 orders, average 4.29. late: 7,661 orders, average 2.57.
+-- Gap = 1.72 points. 646 delivered orders have no review and are excluded
+-- (95,824 reviewed vs 96,470 delivered with a date). Late share among reviewed = 8.0%.
+-- CAUTION: this compares two groups; it does not prove lateness caused the lower score
+-- (state, seller, product and review content are not controlled for).
+-- NEXT: score by how late an order is; repeat purchase by delivery experience;
+-- significance test in Phase 3.
