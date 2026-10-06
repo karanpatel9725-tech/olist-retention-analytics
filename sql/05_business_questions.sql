@@ -106,3 +106,89 @@ WHERE o.order_status = 'delivered';
 -- NOTE: AOV is a mean and can be pulled up by a few large orders; the median and the
 -- spread have not been checked. Revenue covers the whole period, including the thin
 -- months of 2016 and late 2018 (see profiling Query 2).
+
+
+-- Query 7: revenue and orders per month (delivered orders only)
+SELECT DATE_FORMAT(o.order_purchase_timestamp, '%Y-%m') AS order_month,
+       COUNT(DISTINCT o.order_id) AS orders,
+       ROUND(SUM(oi.price + oi.freight_value), 2) AS revenue
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+WHERE o.order_status = 'delivered'
+GROUP BY order_month
+ORDER BY order_month;
+-- INSIGHT (Query 7): Delivered orders and revenue (price + freight) per month, 23 months.
+-- Orders sum to 96,478 and revenue to 15,419,773.75, matching Query 6.
+-- Revenue grows from 127,482.37 (2017-01) to a peak of 1,153,364.20 (2017-11, 7,289 orders),
+-- possibly Black Friday (not verified), then 843,078.29 in 2017-12.
+-- 2018-01 to 2018-08 is flat: revenue 966,168.41 to 1,132,878.93, orders 6,099 to 7,069.
+-- Growth slowed after 2017; reason not known. Revenue per order stays about 147 to 167.
+-- 2016 is about 0.3% of revenue; 2018-09 and 2018-10 have no delivered orders.
+
+
+-- Query 8: top 10 product categories by revenue (delivered orders only)
+SELECT t.product_category_name_english AS category,
+       COUNT(DISTINCT o.order_id) AS orders,
+       ROUND(SUM(oi.price + oi.freight_value), 2) AS revenue
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+LEFT JOIN product_category_translation t ON p.product_category_name = t.product_category_name
+WHERE o.order_status = 'delivered'
+GROUP BY t.product_category_name_english
+ORDER BY revenue DESC
+LIMIT 10;
+-- INSIGHT (Query 8): Top 10 categories by revenue (delivered, price + freight):
+-- health_beauty 1,412,089.53; watches_gifts 1,264,333.12; bed_bath_table 1,225,209.26;
+-- sports_leisure 1,118,256.91; computers_accessories 1,032,723.77; furniture_decor 880,329.92;
+-- housewares 758,392.25; cool_stuff 691,680.89; auto 669,454.75; garden_tools 567,145.68.
+-- The top 10 total 9,619,616.08, about 62.4% of the 15,419,773.75 total. The top category
+-- is about 9.2%, so no single category dominates.
+-- Ranking by orders differs from ranking by revenue: bed_bath_table has the most orders
+-- (9,272) but is 3rd by revenue; watches_gifts has 5,495 orders but is 2nd, so it earns
+-- roughly 230 per order against about 132 for bed_bath_table.
+-- NOTE: the orders column cannot be summed (an order with items from two categories counts
+-- in both). No NULL category appears in the top 10; the share of revenue without a category
+-- is not yet measured.
+
+
+-- Query 9: share of total revenue per category (top 10, delivered orders only)
+SELECT t.product_category_name_english AS category,
+       ROUND(SUM(oi.price + oi.freight_value), 2) AS revenue,
+       ROUND(100 * SUM(oi.price + oi.freight_value)
+             / SUM(SUM(oi.price + oi.freight_value)) OVER (), 1) AS pct_of_total
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+LEFT JOIN product_category_translation t ON p.product_category_name = t.product_category_name
+WHERE o.order_status = 'delivered'
+GROUP BY t.product_category_name_english
+ORDER BY revenue DESC
+LIMIT 10;
+-- INSIGHT (Query 9): Share of total revenue (delivered, price + freight) for the top 10
+-- categories: health_beauty 9.2%; watches_gifts 8.2%; bed_bath_table 7.9%; sports_leisure 7.3%;
+-- computers_accessories 6.7%; furniture_decor 5.7%; housewares 4.9%; cool_stuff 4.5%;
+-- auto 4.3%; garden_tools 3.7%. Together 62.4%, so 37.6% comes from other categories.
+-- Revenue is spread across many categories; no single category dominates.
+-- Shares are of the full 15,419,773.75 total (window function SUM(SUM()) OVER ()).
+
+
+-- Query 10: revenue by payment type (delivered orders only, from order_payments)
+SELECT p.payment_type,
+       COUNT(DISTINCT p.order_id) AS orders,
+       ROUND(SUM(p.payment_value), 2) AS paid,
+       ROUND(100 * SUM(p.payment_value)
+             / SUM(SUM(p.payment_value)) OVER (), 1) AS pct_of_total
+FROM order_payments p
+JOIN orders o ON p.order_id = o.order_id
+WHERE o.order_status = 'delivered'
+GROUP BY p.payment_type
+ORDER BY paid DESC;
+-- INSIGHT (Query 10): Payments on delivered orders by payment type (from order_payments):
+-- credit_card 12,101,094.88 (78.5%, 74,304 orders); boleto 2,769,932.58 (18.0%, 19,191);
+-- voucher 343,013.19 (2.2%, 3,679); debit_card 208,421.12 (1.4%, 1,485).
+-- Paid adds up to 15,422,461.77, matching Query 2a.
+-- The orders column adds up to 98,659 vs 96,477 delivered orders with payments, so some
+-- orders used more than one payment type (combinations not checked).
+-- Rough paid per order: voucher about 93, debit_card about 140, boleto about 144,
+-- credit_card about 163.   
