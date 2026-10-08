@@ -3,8 +3,8 @@
 <!-- CHANGE: Write 2-3 lines in your own words describing the project and its main result.
 Fill this in LAST, once you have real findings. -->
 
-> **Status:** Phase 0 (setup) complete. Phase 1 (SQL and Excel fundamentals) in progress:
-> database built and profiled; business-question queries next.
+> **Status:** Phase 0 (setup) complete. Phase 1 (SQL and Excel fundamentals) nearly complete:
+> database built, profiled and queried (19 business queries); Excel summary next.
 
 ## Business Problem
 Olist is a Brazilian e-commerce marketplace where almost all customers buy only once
@@ -37,19 +37,44 @@ found none. `geolocation` and `product_category_translation` are lookup tables w
 foreign keys.
 
 ## Key Findings (so far)
-All figures come from the profiling queries in `sql/04_data_profiling.sql`.
+Figures come from `sql/04_data_profiling.sql` and `sql/05_business_questions.sql`.
+These are associations from one dataset; none is significance-tested yet (planned for Phase 3).
 
-- **About 97% of customers buy only once.** Of 96,096 real customers, 93,099 (96.9%) placed
-  exactly one order. Excluding canceled and unavailable orders, it is 92,102 of 94,990 (96.96%).
-- **customer_id is not a person.** It is created per order (99,441 values vs 96,096 real
-  customers). All customer counts use `customer_unique_id`.
-- **97.0% of orders are delivered** (96,478 of 99,441). 625 are canceled and 609 unavailable.
-- **Volume is only reliable from January 2017 to August 2018.** 2016 is nearly empty
-  (November 2016 is missing) and September and October 2018 have only 16 and 4 orders.
-- **Reviews needed cleaning.** 547 orders have more than one review, and some review IDs are
-  shared across orders. Reviews are reduced to one per order (the latest) before any join.
+**Retention**
+- **About 97% of customers buy only once.** Excluding canceled and unavailable orders,
+  92,102 of 94,990 customers (96.96%) placed exactly one order. Customers are counted with
+  `customer_unique_id`, because `customer_id` is created per order (99,441 values vs 96,096 people).
+- **Late delivery does not explain it.** Customers whose first order arrived late returned
+  2.52% of the time, against 3.07% for on time. Among customers with an on-time first order,
+  96.93% still never returned.
+- **A bad first review does not explain it either.** Customers who gave their first order
+  1 star returned 2.92% of the time, against 3.14% for 5 stars.
+- **What customers buy first matters more.** The repeat rate by first-item category ranges
+  from 1.65% (electronics) to 5.91% (fashion_bags_accessories), a wider spread than for
+  delivery (0.55 points), review score (0.39) or state (1.75).
+- **The biggest earners are not the best at retention.** health_beauty (9.2% of revenue) and
+  watches_gifts (8.2%) return below the 3.04% average; bed_bath_table and furniture_decor return above it.
 
-_Delivery impact, cohort retention and segmentation results will be added after Phase 3._
+**Delivery and satisfaction**
+- Orders arrive in 12.5 days on average against 24.4 days promised; 8.1% arrive late.
+- Late share is highest in AL (23.9%), MA (19.7%) and PI (16.0%); SP is 5.9%.
+- Review scores fall as orders get later: 4.29 on time, 3.59 up to 3 days late,
+  2.10 for 4 to 7 days late, 1.70 for over 7 days late.
+
+**Revenue**
+- Revenue (price + freight, delivered orders) is 15,419,773.75 across 96,478 orders;
+  average order value is 159.83. Revenue from payments differs by only 0.017%.
+- Monthly revenue grew through 2017 (peak 1,153,364.20 in November 2017) and was flat in 2018.
+- The top 10 categories bring 62.4% of revenue; SP, RJ and MG bring 62.5%.
+- Credit card is 78.5% of payments and boleto 18.0%.
+
+**Data quality**
+- Volume is only reliable from January 2017 to August 2018 (2016 is nearly empty,
+  November 2016 is missing, and September and October 2018 have 16 and 4 orders).
+- 547 orders have more than one review, and some review IDs are shared across orders.
+  Reviews are reduced to one per order (the latest) before any join.
+
+_Cohort retention, RFM segmentation, significance tests and modelling will be added in later phases._
 
 ## Dashboard Preview
 <!-- CHANGE: Add screenshots after Phase 5, e.g. ![Overview](images/dashboard_overview.png) -->
@@ -94,7 +119,8 @@ _Coming soon._
 1. Complete the Setup section above.
 2. Run `sql/01_create_tables.sql`, then load the CSVs: `python scripts\load_data.py`.
 3. Run `sql/02_orphan_checks.sql` and `sql/03_add_foreign_keys.sql`.
-4. Run `sql/04_data_profiling.sql` (each query has an INSIGHT comment with the result).
+4. Run `sql/04_data_profiling.sql` and `sql/05_business_questions.sql`
+   (each query has an INSIGHT comment with its result).
 5. Further SQL files and the notebooks in `notebooks/` will be added in numbered order.
 
 Note: `load_data.py` is meant for the first load, before the foreign keys exist.
@@ -118,21 +144,25 @@ olist-retention-analytics/
 
 ## Approach
 <!-- CHANGE: Fill in as you complete each phase. Keep it short and specific. -->
-1. **SQL analysis:** database built, verified and profiled; business-question queries in progress
+1. **SQL analysis:** database built, verified and profiled; 19 business queries (joins, CTEs,
+   window functions) on revenue, delivery, reviews and repeat purchasing; Excel summary next
 2. **Python cleaning & EDA:** _to be completed_
 3. **Cohort, RFM and delivery impact analysis:** _to be completed_
 4. **Predictive modeling:** _to be completed_
 5. **Power BI dashboard:** _to be completed_
 
 ## Recommendations
-<!-- CHANGE: Add 3-4 business recommendations with estimated impact, after your analysis. -->
-_Coming soon._
+<!-- CHANGE: Add 3-4 business recommendations with estimated impact, after significance tests and cohort analysis (Phase 3). -->
+_Coming after the significance tests in Phase 3._
 
 ## Limitations
 <!-- CHANGE: Be honest, e.g. class imbalance, only two years of data, no marketing data. Extend as the project goes on. -->
 - Only about two years of data. "Buys once" means once within that window, not for life.
 - Customers who first bought late in the period had little time to return, which lowers the measured repeat rate.
 - 2016 and the last two months of 2018 are incomplete and are excluded from cohort analysis.
+- Findings are associations, not proof of cause, and are not yet significance-tested.
+- Some groups are small (for example a few dozen repeat customers in a category or state), so small gaps may be noise.
+- Category analysis uses the first item of a customer's first order only.
 - No marketing or price data.
 
 ## About Me
