@@ -355,3 +355,111 @@ GROUP BY first_order_delivery;
 -- customers (vs 2,888 repeat in total), assuming lateness is the whole cause (unproven).
 -- CAUTION: significance not tested; late-in-period customers had less time to return;
 -- late and on-time groups may differ in timing, state and product.
+
+
+
+-- Query 17: repeat purchase rate by review score of the FIRST order
+WITH latest_review AS (
+    SELECT order_id, review_score,
+           ROW_NUMBER() OVER (PARTITION BY order_id
+                              ORDER BY review_creation_date DESC,
+                                       review_answer_timestamp DESC) AS rn
+    FROM order_reviews
+),
+person_orders AS (
+    SELECT c.customer_unique_id, o.order_id, o.order_status,
+           ROW_NUMBER() OVER (PARTITION BY c.customer_unique_id
+                              ORDER BY o.order_purchase_timestamp) AS order_number,
+           COUNT(*) OVER (PARTITION BY c.customer_unique_id) AS total_orders
+    FROM orders o
+    JOIN customers c ON o.customer_id = c.customer_id
+    WHERE o.order_status NOT IN ('canceled', 'unavailable')
+)
+SELECT r.review_score,
+       COUNT(*) AS customers,
+       ROUND(100 * AVG(po.total_orders > 1), 2) AS pct_repeat
+FROM person_orders po
+JOIN latest_review r ON po.order_id = r.order_id AND r.rn = 1
+WHERE po.order_number = 1
+  AND po.order_status = 'delivered'
+GROUP BY r.review_score
+ORDER BY r.review_score;
+-- INSIGHT (Query 17): Repeat purchase rate by review score of the FIRST order (latest review
+-- per order; delivered first orders; repeat = any later non-canceled/unavailable order).
+-- Score 1: 9,067 customers, 2.92% repeat | 2: 2,832, 2.75% | 3: 7,657, 2.94% |
+-- 4: 18,362, 2.78% | 5: 54,765, 3.14%. 92,683 customers in total.
+-- Range is only 0.39 points; 1-star customers return almost as often as 5-star (2.92% vs 3.14%).
+-- No steady pattern (2-star lowest, 3-star above 4-star); likely noise, not tested.
+-- Rough repeat-customer counts: 2-star about 78, 1-star about 265, 5-star about 1,720.
+-- KEY POINT: with Query 16, neither late delivery nor a bad first review explains the 97%
+-- one-time buyers. Cause not visible in this data; no recommendation from this yet.
+
+
+
+-- Query 18: repeat purchase rate by customer state of the FIRST order
+WITH person_orders AS (
+    SELECT c.customer_unique_id, c.customer_state,
+           ROW_NUMBER() OVER (PARTITION BY c.customer_unique_id
+                              ORDER BY o.order_purchase_timestamp) AS order_number,
+           COUNT(*) OVER (PARTITION BY c.customer_unique_id) AS total_orders
+    FROM orders o
+    JOIN customers c ON o.customer_id = c.customer_id
+    WHERE o.order_status NOT IN ('canceled', 'unavailable')
+)
+SELECT customer_state,
+       COUNT(*) AS customers,
+       ROUND(100 * AVG(total_orders > 1), 2) AS pct_repeat
+FROM person_orders
+WHERE order_number = 1
+GROUP BY customer_state
+HAVING COUNT(*) >= 500
+ORDER BY pct_repeat DESC;
+-- INSIGHT (Query 18): Repeat purchase rate by customer state of the FIRST order
+-- (non-canceled/unavailable orders; states with at least 500 first-order customers;
+-- 17 states, 92,472 customers; overall rate for reference 3.04%).
+-- Highest: RJ 3.37% (12,238 customers), MT 3.33% (871), GO 3.16%, SP 3.14% (39,738), RS 3.13%.
+-- Lowest: CE 1.62% (1,300), MA 2.24% (713), PE 2.32% (1,597), PA 2.44%, PB 2.52%.
+-- Range 1.75 points. Rough repeat-customer counts: RJ about 412, SP about 1,248,
+-- CE about 21, MT about 29, so small-state gaps may be noise.
+-- Low-repeat states (CE, MA, PE, PA, PB) tend to have high late shares (Query 13), but RJ has
+-- 13.5% late and the highest repeat rate, so delivery does not explain state differences.
+-- No test run yet; CE is the clearest candidate. Significance in Phase 3.
+
+
+
+-- Query 19: repeat purchase rate by category of the FIRST order's first item
+WITH person_orders AS (
+    SELECT c.customer_unique_id, o.order_id,
+           ROW_NUMBER() OVER (PARTITION BY c.customer_unique_id
+                              ORDER BY o.order_purchase_timestamp) AS order_number,
+           COUNT(*) OVER (PARTITION BY c.customer_unique_id) AS total_orders
+    FROM orders o
+    JOIN customers c ON o.customer_id = c.customer_id
+    WHERE o.order_status NOT IN ('canceled', 'unavailable')
+)
+SELECT t.product_category_name_english AS category,
+       COUNT(*) AS customers,
+       ROUND(100 * AVG(po.total_orders > 1), 2) AS pct_repeat
+FROM person_orders po
+JOIN order_items oi ON po.order_id = oi.order_id AND oi.order_item_id = 1
+JOIN products p ON oi.product_id = p.product_id
+LEFT JOIN product_category_translation t ON p.product_category_name = t.product_category_name
+WHERE po.order_number = 1
+GROUP BY t.product_category_name_english
+HAVING COUNT(*) >= 1000
+ORDER BY pct_repeat DESC;
+-- INSIGHT (Query 19): Repeat purchase rate by category of the FIRST order's first item
+-- (non-canceled/unavailable orders; categories with at least 1,000 first-order customers;
+-- 21 rows incl. one blank category, 84,144 customers; overall rate for reference 3.04%).
+-- Highest: fashion_bags_accessories 5.91% (1,726), furniture_decor 4.55% (6,039),
+-- bed_bath_table 4.51% (8,847), sports_leisure 3.92% (7,326).
+-- Lowest: electronics 1.65% (2,489), consoles_games 1.75% (1,031), cool_stuff 1.87% (3,529),
+-- office_furniture 2.02%, auto 2.05%. Blank category (no category/translation): 2.83% (1,377).
+-- Range 4.26 points: first-purchase category is linked to repeat rate more strongly than
+-- delivery (0.55), review score (0.39) or state (1.75).
+-- Top-revenue categories are not the best at retention: health_beauty 2.79% and
+-- watches_gifts 2.14% are below average; bed_bath_table and furniture_decor are above.
+-- Rough repeat-customer counts: bed_bath_table about 399, furniture_decor about 275,
+-- electronics about 41, consoles_games about 18 (small counts, possible noise).
+-- CAUTION: uses the first item of the first order only; repeat = any later order, not
+-- necessarily the same category; not tested for significance (Phase 3).
