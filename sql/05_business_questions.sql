@@ -286,3 +286,72 @@ GROUP BY delivery_status;
 -- (state, seller, product and review content are not controlled for).
 -- NEXT: score by how late an order is; repeat purchase by delivery experience;
 -- significance test in Phase 3.
+
+
+
+-- Query 15: average review score by how late the order was (delivered, one review per order)
+WITH latest_review AS (
+    SELECT order_id, review_score,
+           ROW_NUMBER() OVER (PARTITION BY order_id
+                              ORDER BY review_creation_date DESC,
+                                       review_answer_timestamp DESC) AS rn
+    FROM order_reviews
+)
+SELECT CASE
+         WHEN o.order_delivered_customer_date <= o.order_estimated_delivery_date THEN '1_on_time'
+         WHEN DATEDIFF(o.order_delivered_customer_date, o.order_estimated_delivery_date) <= 3 THEN '2_late_up_to_3_days'
+         WHEN DATEDIFF(o.order_delivered_customer_date, o.order_estimated_delivery_date) <= 7 THEN '3_late_4_to_7_days'
+         ELSE '4_late_over_7_days'
+       END AS lateness,
+       COUNT(*) AS orders,
+       ROUND(AVG(r.review_score), 2) AS avg_review_score
+FROM orders o
+JOIN latest_review r ON o.order_id = r.order_id AND r.rn = 1
+WHERE o.order_status = 'delivered'
+  AND o.order_delivered_customer_date IS NOT NULL
+GROUP BY lateness
+ORDER BY lateness;
+-- INSIGHT (Query 15): Average review score by lateness (delivered, one review per order,
+-- 95,824 orders): on time 4.29 (88,163); up to 3 days late 3.59 (3,132);
+-- 4 to 7 days late 2.10 (1,748); over 7 days late 1.70 (2,781).
+-- The score falls at every step; the biggest drop (1.49) is between the 3-day and 7-day bands.
+-- Orders more than 7 days late are 2.9% of reviewed orders and 36.3% of all late orders.
+-- Totals match Query 14 (88,163 on time; 7,661 late).
+-- CAUTION: association, not proof of cause (very late orders may have other problems too).
+-- NEXT: do customers whose first order arrived late come back less often?
+
+
+-- Query 16: repeat purchase rate by delivery experience of the FIRST order
+WITH person_orders AS (
+    SELECT c.customer_unique_id,
+           o.order_status,
+           o.order_delivered_customer_date,
+           o.order_estimated_delivery_date,
+           ROW_NUMBER() OVER (PARTITION BY c.customer_unique_id
+                              ORDER BY o.order_purchase_timestamp) AS order_number,
+           COUNT(*) OVER (PARTITION BY c.customer_unique_id) AS total_orders
+    FROM orders o
+    JOIN customers c ON o.customer_id = c.customer_id
+    WHERE o.order_status NOT IN ('canceled', 'unavailable')
+)
+SELECT CASE WHEN order_delivered_customer_date > order_estimated_delivery_date
+            THEN 'first_order_late' ELSE 'first_order_on_time' END AS first_order_delivery,
+       COUNT(*) AS customers,
+       ROUND(100 * AVG(total_orders > 1), 2) AS pct_repeat
+FROM person_orders
+WHERE order_number = 1
+  AND order_status = 'delivered'
+  AND order_delivered_customer_date IS NOT NULL
+GROUP BY first_order_delivery;
+-- INSIGHT (Query 16): Repeat purchase rate by delivery experience of the FIRST order
+-- (first = earliest non-canceled/unavailable order; repeat = any later such order;
+-- customers via customer_unique_id; first order must be delivered with a delivery date).
+-- First order on time: 85,697 customers, 3.07% came back. First order late: 7,594 customers,
+-- 2.52% came back. Gap = 0.55 points (about 18% fewer returns among late).
+-- 93,291 customers included; 1,699 of the 94,990 drop out (first order not delivered/no date).
+-- KEY POINT: 96.93% of customers with an on-time first order also never returned, so late
+-- delivery is NOT the main driver of the 97% one-time buyers.
+-- Rough upper bound: if late customers returned at the on-time rate, about 42 more repeat
+-- customers (vs 2,888 repeat in total), assuming lateness is the whole cause (unproven).
+-- CAUTION: significance not tested; late-in-period customers had less time to return;
+-- late and on-time groups may differ in timing, state and product.
