@@ -3,8 +3,8 @@
 <!-- CHANGE: Write 2-3 lines in your own words describing the project and its main result.
 Fill this in LAST, once you have real findings. -->
 
-> **Status:** Phase 0 (setup) complete. Phase 1 (SQL and Excel fundamentals) nearly complete:
-> database built, profiled and queried (19 business queries); Excel summary next.
+> **Status:** Phase 0 (setup) and Phase 1 (SQL and Excel fundamentals) complete: database built,
+> 19 business queries and an Excel summary done. Phase 2 (Python cleaning and EDA) is next.
 
 ## Business Problem
 Olist is a Brazilian e-commerce marketplace where almost all customers buy only once
@@ -121,7 +121,9 @@ _Coming soon._
 3. Run `sql/02_orphan_checks.sql` and `sql/03_add_foreign_keys.sql`.
 4. Run `sql/04_data_profiling.sql` and `sql/05_business_questions.sql`
    (each query has an INSIGHT comment with its result).
-5. Further SQL files and the notebooks in `notebooks/` will be added in numbered order.
+5. Optional: `python scripts\export_for_excel.py` recreates the four CSVs in `data/processed/`
+   that feed the Excel workbook.
+6. Further SQL files and the notebooks in `notebooks/` will be added in numbered order.
 
 Note: `load_data.py` is meant for the first load, before the foreign keys exist.
 
@@ -135,7 +137,7 @@ olist-retention-analytics/
 ├── scripts/            # runnable Python scripts (connection test, data loading)
 ├── notebooks/          # Python cleaning, EDA, analysis, modeling
 ├── dashboard/          # Power BI file
-├── reports/            # business summary
+├── reports/            # Excel summary workbook (business summary to come)
 ├── images/             # screenshots and diagrams (ER diagram)
 ├── PROJECT_CONTEXT.md  # running project notes
 ├── .env.example        # database settings template (copy to .env)
@@ -145,7 +147,8 @@ olist-retention-analytics/
 ## Approach
 <!-- CHANGE: Fill in as you complete each phase. Keep it short and specific. -->
 1. **SQL analysis:** database built, verified and profiled; 19 business queries (joins, CTEs,
-   window functions) on revenue, delivery, reviews and repeat purchasing; Excel summary next
+window functions) on revenue, delivery, reviews and repeat purchasing; results summarised in
+`reports/olist_excel_summary.xlsx` (four charts and a one-page summary)
 2. **Python cleaning & EDA:** _to be completed_
 3. **Cohort, RFM and delivery impact analysis:** _to be completed_
 4. **Predictive modeling:** _to be completed_

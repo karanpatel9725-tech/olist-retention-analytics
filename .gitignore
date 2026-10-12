@@ -230,3 +230,5 @@ data/processed/*.csv
 .ipynb_checkpoints/
 .DS_Store
 Thumbs.db
+
+~$*
