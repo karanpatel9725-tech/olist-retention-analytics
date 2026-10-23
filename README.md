@@ -3,8 +3,9 @@
 <!-- CHANGE: Write 2-3 lines in your own words describing the project and its main result.
 Fill this in LAST, once you have real findings. -->
 
-> **Status:** Phase 0 (setup) and Phase 1 (SQL and Excel fundamentals) complete: database built,
-> 19 business queries and an Excel summary done. Phase 2 (Python cleaning and EDA) is next.
+> **Status:** Phases 0 to 2 complete: database built and profiled, 19 business queries, an Excel
+> summary, and a Python notebook with the cleaned analysis table and EDA charts. Phase 3
+> (cohorts, RFM and significance tests) is next.
 
 ## Business Problem
 Olist is a Brazilian e-commerce marketplace where almost all customers buy only once
@@ -60,6 +61,10 @@ These are associations from one dataset; none is significance-tested yet (planne
 - Late share is highest in AL (23.9%), MA (19.7%) and PI (16.0%); SP is 5.9%.
 - Review scores fall as orders get later: 4.29 on time, 3.59 up to 3 days late,
   2.10 for 4 to 7 days late, 1.70 for over 7 days late.
+- The typical delivered order arrives in 10 days (median); the mean is 12.5 because of a long
+  tail of slow orders (298 orders took more than 60 days).
+- 59.2% of delivered orders get 5 stars and 78.9% get 4 or 5; 1 star (9.8%) is about three times
+  as common as 2 stars (3.0%).
 
 **Revenue**
 - Revenue (price + freight, delivered orders) is 15,419,773.75 across 96,478 orders;
@@ -124,6 +129,8 @@ _Coming soon._
 5. Optional: `python scripts\export_for_excel.py` recreates the four CSVs in `data/processed/`
    that feed the Excel workbook.
 6. Further SQL files and the notebooks in `notebooks/` will be added in numbered order.
+7. Run `notebooks/01_cleaning_eda.ipynb` (needs the database loaded and your `.env`); it rebuilds
+   `data/processed/orders_enriched.csv`.
 
 Note: `load_data.py` is meant for the first load, before the foreign keys exist.
 
@@ -149,7 +156,8 @@ olist-retention-analytics/
 1. **SQL analysis:** database built, verified and profiled; 19 business queries (joins, CTEs,
 window functions) on revenue, delivery, reviews and repeat purchasing; results summarised in
 `reports/olist_excel_summary.xlsx` (four charts and a one-page summary)
-2. **Python cleaning & EDA:** _to be completed_
+2. **Python cleaning & EDA:** `notebooks/01_cleaning_eda.ipynb` rebuilds one order-level analysis
+   table (99,441 rows) from MySQL, reconciled against the SQL results, with five EDA charts
 3. **Cohort, RFM and delivery impact analysis:** _to be completed_
 4. **Predictive modeling:** _to be completed_
 5. **Power BI dashboard:** _to be completed_
