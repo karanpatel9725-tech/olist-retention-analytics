@@ -49,3 +49,28 @@ WHERE prev_order IS NOT NULL;
 -- month of the previous order, so the first weeks after a purchase are the best window to reach customers.
 -- CAUTION: same date can mean one shopping session split into two orders, not a real return visit.
 
+
+
+-- Query 3: monthly revenue and running total (price + freight, delivered orders)
+WITH monthly AS (
+    SELECT DATE_FORMAT(o.order_purchase_timestamp, '%Y-%m') AS order_month,
+           COUNT(DISTINCT o.order_id) AS orders,
+           SUM(oi.price + oi.freight_value) AS monthly_revenue
+    FROM orders o
+    JOIN order_items oi ON o.order_id = oi.order_id
+    WHERE o.order_status = 'delivered'
+    GROUP BY DATE_FORMAT(o.order_purchase_timestamp, '%Y-%m')
+)
+SELECT order_month,
+       orders,
+       ROUND(monthly_revenue, 2) AS monthly_revenue,
+       ROUND(SUM(monthly_revenue) OVER (ORDER BY order_month), 2) AS running_total
+FROM monthly
+ORDER BY order_month;
+
+
+-- INSIGHT: Delivered revenue (price + freight) adds up to 15,419,773.75 by 2018-08, matching
+-- Query 6 in sql/05. Monthly revenue peaked in 2017-11 at 1,153,364.20 (7,289 orders), dipped
+-- to 843,078.29 in 2017-12, and stayed between 966,168.41 and 1,132,878.93 from 2018-01 to
+-- 2018-08, so the running total grows by about the same amount each month in 2018.
+-- 2016 months are tiny (November 2016 is missing) and should not be read as a trend.
