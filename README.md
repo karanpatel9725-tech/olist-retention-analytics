@@ -1,11 +1,14 @@
 # Olist Customer Retention & Delivery Performance Analytics
 
-<!-- CHANGE: Write 2-3 lines in your own words describing the project and its main result.
-Fill this in LAST, once you have real findings. -->
+<!-- CHANGE: This summary is a draft. Revise it once the model and dashboard are finished. -->
+About 97% of Olist customers buy only once. I used SQL, Python and Excel to test why they don't return.
+Late delivery cuts review scores sharply (4.29 vs 2.57 stars) but only slightly lowers repeat buying
+(3.07% vs 2.53%), and review score itself does not separate repeat buyers. Repeat buyers are only 3.04% of
+customers, and one cooling segment ("At risk") holds 26.52% of spend, which makes it the best group for a win-back test.
 
-> **Status:** Phases 0 to 2 complete: database built and profiled, 19 business queries, an Excel
-> summary, and a Python notebook with the cleaned analysis table and EDA charts. Phase 3
-> (cohorts, RFM and significance tests) is next.
+> **Status:** Phases 0 to 3 complete: database built and profiled, 19 business queries, an Excel summary,
+> a cleaning and EDA notebook, and a retention notebook (cohorts, RFM segments, significance tests).
+> SQL window functions, a prediction model, the Power BI dashboard and the business summary are next.
 
 ## Business Problem
 Olist is a Brazilian e-commerce marketplace where almost all customers buy only once
@@ -38,29 +41,47 @@ found none. `geolocation` and `product_category_translation` are lookup tables w
 foreign keys.
 
 ## Key Findings (so far)
-Figures come from `sql/04_data_profiling.sql` and `sql/05_business_questions.sql`.
-These are associations from one dataset; none is significance-tested yet (planned for Phase 3).
+Figures come from `sql/04_data_profiling.sql`, `sql/05_business_questions.sql` and the notebooks.
+The delivery and review-score comparisons are significance-tested in `notebooks/02_retention_rfm.ipynb`
+(Mann-Whitney and chi-square tests, with effect sizes). The category, state and cohort differences are not tested.
+Everything here is an association from one dataset, not proof of cause.
 
 **Retention**
 - **About 97% of customers buy only once.** Excluding canceled and unavailable orders,
   92,102 of 94,990 customers (96.96%) placed exactly one order. Customers are counted with
   `customer_unique_id`, because `customer_id` is created per order (99,441 values vs 96,096 people).
-- **Late delivery does not explain it.** Customers whose first order arrived late returned
-  2.52% of the time, against 3.07% for on time. Among customers with an on-time first order,
-  96.93% still never returned.
-- **A bad first review does not explain it either.** Customers who gave their first order
-  1 star returned 2.92% of the time, against 3.14% for 5 stars.
+- **There is no second wave of returns.** In the monthly cohort heatmap (2017-01 to 2018-08), no month after
+  the first goes above 0.71% of a cohort. 39.6% of repeat orders (1,273 of 3,217) happen in the same
+  calendar month as the first order.
+- **Late delivery explains only a small part.** Customers whose first order arrived late returned
+  2.53% of the time against 3.07% for on time (chi-square p = 0.0088; 7,595 vs 85,698 customers).
+  With at least 6 months to return the gap is similar (3.22% vs 4.09%, p = 0.0063), so limited time to
+  return does not explain it. Even among on-time customers, about 96% never came back.
+- **A bad first review does not explain it.** The repeat rate is 2.69% to 3.15% across all five scores
+  (chi-square p = 0.082, Cramer's V = 0.0095, essentially no effect). 1-star customers return about as often
+  as 5-star customers.
 - **What customers buy first matters more.** The repeat rate by first-item category ranges
   from 1.65% (electronics) to 5.91% (fashion_bags_accessories), a wider spread than for
-  delivery (0.55 points), review score (0.39) or state (1.75).
+  delivery (0.54 points), review score (0.46) or state (1.75). This category gap is not yet tested.
 - **The biggest earners are not the best at retention.** health_beauty (9.2% of revenue) and
   watches_gifts (8.2%) return below the 3.04% average; bed_bath_table and furniture_decor return above it.
 
+**Customer segments (RFM)**
+- Six segments built with my own rules (recency and spend in quintiles, frequency in bands 1, 2, 3+).
+- **Repeat buyers are too few to carry revenue:** Champions and Loyal are 3.04% of people and 5.66% of spend.
+- **"At risk" is the best opportunity:** 14,146 people (14.89%) hold 26.52% of spend (one order, higher spend,
+  about 9 months since purchase). "About to lose" is the reverse: 23.85% of people but 10.44% of spend.
+- Past spend does not show that someone will return, so this needs an experiment with a control group.
+
 **Delivery and satisfaction**
 - Orders arrive in 12.5 days on average against 24.4 days promised; 8.1% arrive late.
-- Late share is highest in AL (23.9%), MA (19.7%) and PI (16.0%); SP is 5.9%.
-- Review scores fall as orders get later: 4.29 on time, 3.59 up to 3 days late,
-  2.10 for 4 to 7 days late, 1.70 for over 7 days late.
+- Review scores fall as orders get later: 4.29 on time and 2.57 late (Mann-Whitney p < 0.001; a random
+  on-time order scores higher than a random late one 77.7% of the time). By lateness band: 3.59 up to
+  3 days late, 2.10 for 4 to 7 days, 1.70 for over 7 days.
+- Late share by state (all delivered orders) is highest in AL (23.9%), MA (19.7%) and PI (16.0%); SP is 5.9%.
+  Among 17 states with 500+ first-order customers: MA 19.66%, CE 15.51%, BA 14.06% and RJ 13.46% late, against
+  SP 5.92%. RJ combines a high late share with a high repeat rate (3.32%), so delivery does not explain
+  every state difference.
 - The typical delivered order arrives in 10 days (median); the mean is 12.5 because of a long
   tail of slow orders (298 orders took more than 60 days).
 - 59.2% of delivered orders get 5 stars and 78.9% get 4 or 5; 1 star (9.8%) is about three times
@@ -78,8 +99,9 @@ These are associations from one dataset; none is significance-tested yet (planne
   November 2016 is missing, and September and October 2018 have 16 and 4 orders).
 - 547 orders have more than one review, and some review IDs are shared across orders.
   Reviews are reduced to one per order (the latest) before any join.
+- 6 canceled orders have a delivery date, so lateness is only used on delivered orders.
 
-_Cohort retention, RFM segmentation, significance tests and modelling will be added in later phases._
+_Window-function queries, modelling and the dashboard will be added in later phases._
 
 ## Dashboard Preview
 <!-- CHANGE: Add screenshots after Phase 5, e.g. ![Overview](images/dashboard_overview.png) -->
@@ -91,7 +113,7 @@ _Coming soon._
 |---|---|
 | Database | MySQL 8.0 (developed on 8.0.43) |
 | SQL client | VS Code "Database Client" extension; MySQL Workbench for the ER diagram |
-| Programming | Python 3.x (pandas, NumPy, matplotlib, seaborn, scikit-learn, SciPy, XGBoost, SQLAlchemy, PyMySQL, python-dotenv) |
+| Programming | Python 3.x (pandas, NumPy, matplotlib, seaborn, scikit-learn, SciPy, SQLAlchemy, PyMySQL, python-dotenv) |
 | Notebooks / editor | VS Code with Jupyter |
 | Dashboard | Power BI Desktop |
 | Quick analysis | Microsoft Excel |
@@ -128,9 +150,10 @@ _Coming soon._
    (each query has an INSIGHT comment with its result).
 5. Optional: `python scripts\export_for_excel.py` recreates the four CSVs in `data/processed/`
    that feed the Excel workbook.
-6. Further SQL files and the notebooks in `notebooks/` will be added in numbered order.
-7. Run `notebooks/01_cleaning_eda.ipynb` (needs the database loaded and your `.env`); it rebuilds
+6. Run `notebooks/01_cleaning_eda.ipynb` (needs the database loaded and your `.env`); it rebuilds
    `data/processed/orders_enriched.csv`.
+7. Run `notebooks/02_retention_rfm.ipynb` (reads `orders_enriched.csv`; no database connection needed).
+8. Further SQL files and notebooks will be added in numbered order.
 
 Note: `load_data.py` is meant for the first load, before the foreign keys exist.
 
@@ -141,8 +164,8 @@ olist-retention-analytics/
 │   ├── raw/            # original Kaggle CSVs (not tracked)
 │   └── processed/      # cleaned data (not tracked)
 ├── sql/                # commented SQL queries only (numbered 01_, 02_, ...)
-├── scripts/            # runnable Python scripts (connection test, data loading)
-├── notebooks/          # Python cleaning, EDA, analysis, modeling
+├── scripts/            # runnable Python scripts (connection test, data loading, Excel export)
+├── notebooks/          # 01 cleaning and EDA, 02 retention, RFM and tests (modelling to come)
 ├── dashboard/          # Power BI file
 ├── reports/            # Excel summary workbook (business summary to come)
 ├── images/             # screenshots and diagrams (ER diagram)
@@ -158,22 +181,34 @@ window functions) on revenue, delivery, reviews and repeat purchasing; results s
 `reports/olist_excel_summary.xlsx` (four charts and a one-page summary)
 2. **Python cleaning & EDA:** `notebooks/01_cleaning_eda.ipynb` rebuilds one order-level analysis
    table (99,441 rows) from MySQL, reconciled against the SQL results, with five EDA charts
-3. **Cohort, RFM and delivery impact analysis:** _to be completed_
-4. **Predictive modeling:** _to be completed_
+3. **Cohort, RFM and delivery impact analysis:** `notebooks/02_retention_rfm.ipynb` builds a monthly
+   cohort retention heatmap (20 cohorts), RFM segments with six labelled groups, a Mann-Whitney test of
+   review score by delivery status, chi-square tests of repeat rate by delivery (with a 6-month robustness
+   check) and by review score, and a late-share and repeat-rate view by state
+4. **Predictive modeling:** _to be completed_ (logistic regression and random forest)
 5. **Power BI dashboard:** _to be completed_
 
 ## Recommendations
-<!-- CHANGE: Add 3-4 business recommendations with estimated impact, after significance tests and cohort analysis (Phase 3). -->
-_Coming after the significance tests in Phase 3._
+<!-- CHANGE: Revise after the model and dashboard. Estimated impact is not computed yet. -->
+These are hypotheses to test, not conclusions.
+1. **Run a win-back experiment on the "At risk" segment** (14.89% of people, 26.52% of spend), with a control
+   group, and measure the return rate. "About to lose" is a weaker target because average spend is low.
+2. **Prioritise logistics in MA, CE, BA and RJ**, where late shares are highest, to protect review scores.
+3. **Do not expect on-time delivery alone to fix retention.** Even on-time customers return only about 3% to 4%
+   of the time, so also test first-purchase offers and category-based campaigns.
 
 ## Limitations
 <!-- CHANGE: Be honest, e.g. class imbalance, only two years of data, no marketing data. Extend as the project goes on. -->
 - Only about two years of data. "Buys once" means once within that window, not for life.
 - Customers who first bought late in the period had little time to return, which lowers the measured repeat rate.
+  A 6-month check shows the delivery gap holds, but it is not removed for the other comparisons.
 - 2016 and the last two months of 2018 are incomplete and are excluded from cohort analysis.
-- Findings are associations, not proof of cause, and are not yet significance-tested.
-- Some groups are small (for example a few dozen repeat customers in a category or state), so small gaps may be noise.
+- Findings are associations, not proof of cause. Late and on-time customers may differ in state, seller and product mix,
+  which I did not control for. The category, state and cohort differences are not significance-tested.
+- Some groups are small (for example a few dozen repeat customers in a state or category), so small gaps may be noise.
+- RFM segment rules are my own choice, and "At risk" does not mean a customer is likely to return.
 - Category analysis uses the first item of a customer's first order only.
+- A few counts differ by 1 to 5 people between SQL and Python (for example 85,698 vs 85,697 first-order customers); causes not checked.
 - No marketing or price data.
 
 ## About Me

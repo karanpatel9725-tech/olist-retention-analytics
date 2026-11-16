@@ -12,6 +12,8 @@ The ~97% one-time-buyer figure is CONFIRMED on the data (see Key findings).
 - Everything must be free of cost.
 - Prefers one step at a time; fill-in-the-blank templates work well, then a review. Gets confused by long query chains and by being told to replace several cells: say exactly WHICH cell to edit and give only that cell's code. Prefer synthesis over more queries.
 - Updates the README, this file and the Word notes once at the end of each working day.
+- Lost interest in the project after the retention tests (16 Nov 2026). Wants to FINISH FAST with no extra steps, then start a second, more interesting project. Lean plan below. Must still be able to explain the project in interviews.
+- Took a long break (26 Oct to 16 Nov 2026): after a break, re-run all notebook cells (Run All) before continuing.
 
 ## Tools
 - Database: MySQL 8.0.43 (local server, Windows service); database name olist; MySQL Workbench for one-off tasks
@@ -30,9 +32,10 @@ D:\VS\Olist Project\olist-retention-analytics
 data/raw, data/processed, sql, scripts, notebooks, dashboard, reports, images
 Root files: README.md, PROJECT_CONTEXT.md, .env (git-ignored), .env.example, .gitignore, LICENSE
 - sql/ holds SQL files only (numbered). scripts/ holds runnable Python files.
-- Files so far: sql/01_create_tables.sql, 02_orphan_checks.sql, 03_add_foreign_keys.sql, 04_data_profiling.sql (13 queries), 05_business_questions.sql (19 queries); scripts/test_connection.py, load_data.py, export_for_excel.py; notebooks/01_cleaning_eda.ipynb, notebooks/02_retention_rfm.ipynb (in progress); images/er_diagram.png; reports/olist_excel_summary.xlsx
+- Files so far: sql/01_create_tables.sql, 02_orphan_checks.sql, 03_add_foreign_keys.sql, 04_data_profiling.sql (13 queries), 05_business_questions.sql (19 queries); scripts/test_connection.py, load_data.py, export_for_excel.py; notebooks/01_cleaning_eda.ipynb, notebooks/02_retention_rfm.ipynb (analysis finished, closing summary written); images/er_diagram.png; reports/olist_excel_summary.xlsx
+- Planned, not yet created: sql/06_window_functions.sql, notebooks/03_modeling.ipynb, the Power BI file in dashboard/.
 - data/processed/ (CSVs git-ignored): the four Excel CSVs and orders_enriched.csv (99,441 rows x 18 columns, recreated by notebook 01).
-- Personal interview-prep notes live in a Word file OUTSIDE the repo (olist_project_notes.docx), last updated 23 Oct 2026 (needs a new row for 26 Oct).
+- Personal interview-prep notes live in a Word file OUTSIDE the repo (olist_project_notes.docx), updated 16 Nov 2026 (rows for 26 Oct and 16 Nov added).
 
 ## Conventions
 - snake_case names; SQL files numbered (01_, 02_, ...); notebooks numbered (01_, 02_, ...)
@@ -41,6 +44,7 @@ Root files: README.md, PROJECT_CONTEXT.md, .env (git-ignored), .env.example, .gi
 - Raw data in data/raw (never edited); cleaned data in data/processed
 - Database: olist (utf8mb4, collation utf8mb4_0900_ai_ci)
 - Run each Git command on its own line (commit and push separately); run commands from the repo folder
+- Commit locally after each step; push once at the end of a step group or session (user's preference from 16 Nov).
 - In the Database Client extension, select the whole query (for CTEs, from WITH to the final semicolon) before clicking Run.
 - Comment lines must start with "--"; check for leftover blanks before running.
 - Avoid SQL reserved words as aliases (for example "or"); use o, c, oi, r.
@@ -50,24 +54,24 @@ Root files: README.md, PROJECT_CONTEXT.md, .env (git-ignored), .env.example, .gi
 - ALWAYS filter order_status == 'delivered' before using is_late, delivery_days or delay_days: 6 canceled orders have a delivery date, so is_late is filled for them.
 - Each query and chart is followed by an INSIGHT comment with real numbers; check the customer count next to every percentage; "slow" (days) is not "late" (after the promised date).
 - Statistical tests: report the effect size next to the p-value (p of 0.0 is written "p < 0.001"); say association, not cause.
-- Heatmaps: mask months that have not happened yet as NaN (not 0); keep every month column (reindex) so true zeros are not hidden.
+- Heatmaps: mask months that have not happened yet as NaN (not 0); keep every month column (reindex) so true zeros are not hidden; cap the colour scale just above the highest value.
 - Close Excel before committing (its ~$ lock file); ~$* is in .gitignore.
 
-## Roadmap (6-8 weeks, ~1-2 hrs/day)
+## Roadmap (lean plan agreed 16 Nov 2026)
 - Phase 0: Setup - DONE
 - Phase 1: SQL and Excel fundamentals - DONE (19 business queries, Excel summary; pivot tables skipped; Query 20 on late sellers deferred to the dashboard)
 - Phase 2: Python cleaning and EDA - DONE (notebook 01: analysis table, five charts)
-- Phase 3: Cohort retention, RFM segmentation, delivery impact analysis (hypothesis testing), SQL window functions - IN PROGRESS (Steps 16, 17 and 18a done; 18b next)
-- Phase 4: Repeat-purchase prediction (logistic regression, random forest, XGBoost), feature importance, honest limitations; optional K-Means
-- Phase 5: 3-page Power BI dashboard (Executive overview, Customer retention, Operations) with DAX, slicers, drill-through
-- Phase 6: README case study, 1-2 page business summary, 2-3 minute video, resume and LinkedIn update
+- Phase 3: Cohort retention, RFM, delivery impact with hypothesis tests - DONE (notebook 02, Steps 16-18). SQL window functions (Step 19) - IN PROGRESS, not run yet.
+- Phase 4 (LEAN): notebook 03 with logistic regression and random forest, feature importance, honest limitations. SKIP XGBoost, K-Means, SHAP.
+- Phase 5 (LEAN): 2-page Power BI dashboard (Overview + Retention, Operations), about 5 DAX measures, slicers. SKIP drill-through. Power BI is kept because it appears in most analyst job posts.
+- Phase 6 (LEAN): README case study, 1-page business summary, 2-minute video, resume and LinkedIn update.
 
 ## Current status
-- Current phase: Phase 3, notebook 02 (about two-thirds done)
-- Done in notebook 02: Step 16 cohort retention (matrix, heatmap, insights); Step 17 RFM (table, scores, segments, summary, share chart, insights); Step 18a Mann-Whitney test and effect size on review score, on time vs late (insight cell written).
-- Next in notebook 02: Step 18b chi-square test of the repeat-rate gap (template given, NOT yet run), then repeat rate by delivery experience and review score, worst states, closing summary cell.
-- Pushed and confirmed earlier: Phases 0 and 1; notebook 01 up to EDA chart 3 (commit 8b5178a).
-- NOT confirmed (check with git log): EDA charts 4-5 commit; the notebook 02 commits (cohort, RFM, Mann-Whitney); README end-of-Phase-2 edits; this file and the Word notes.
+- Last updated: 16 Nov 2026. Current phase: Phase 3, Step 19 (SQL window functions). Notebook 02 is finished.
+- Notebook 02 done: Step 16 cohort retention (matrix, heatmap, insights); Step 17 RFM (table, scores, segments, summary, share chart, insights); 18a Mann-Whitney on review score by delivery; 18b chi-square of repeat rate by delivery (full data and a 6-month robustness check); 18c chi-square of repeat rate by review score; 18d late share and repeat rate by state; 18e closing summary cell (findings, limits, recommendations).
+- Step 19: Query 1 (ROW_NUMBER per person) template was given but NOT run; Queries 2 (LAG) and 3 (running total) not started.
+- Confirmed pushed (git log): everything up to commit 3c6aadb on 26 Oct (Phases 0-2, cohort, RFM, Mann-Whitney, context file), and on 16 Nov the chi-square tests by delivery with the robustness check (git status showed main in sync with origin/main).
+- NOT confirmed pushed: the review-score chi-square, the state table, the closing summary cell, and the updated README and this file. Check git status -sb and git log --oneline -8.
 
 ## Notebook 01 (notebooks/01_cleaning_eda.ipynb)
 - Loads orders, customers, order_items, order_payments, order_reviews, products, sellers, product_category_translation via SQLAlchemy and .env; every row count matches MySQL.
@@ -77,12 +81,15 @@ Root files: README.md, PROJECT_CONTEXT.md, .env (git-ignored), .env.example, .gi
 - Charts: monthly revenue, delivery-time histogram, review-score distribution, top 10 states, top 10 categories; each with an insight cell.
 
 ## Notebook 02 (notebooks/02_retention_rfm.ipynb)
-- Loads data/processed/orders_enriched.csv with dates parsed. Variables: orders; first (order_number == 1, one row per person); cohort_size; valid (98,207 orders with order_number, plus order_month, cohort_month, months_since_first); active; retention; rfm; summary; d.
+- Loads data/processed/orders_enriched.csv with dates parsed. Variables: orders; first (order_number == 1, one row per person); cohort_size; valid (98,207 orders with order_number, plus order_month, cohort_month, months_since_first); active; retention; rfm; summary; d; f; table; state.
 - Cohorts: cohort_month = month of first valid order. Window 2017-01 to 2018-08 (20 cohorts, 94,697 people). 2016 cohorts: 2, 290 and 1 people. No cohort exists for 2018-09 or 2018-10 (cause not checked).
-- Retention matrix: active people / cohort size x 100. In the retention cell, active is cut to the window, reindexed to months 0-19 (fill 0), and months that have not happened yet are set to NaN. (The raw active matrix has columns 0-17, 19, 20: month 18 is missing because nobody ordered then, and month 20 comes from 2016 cohorts; the reindex fixes both.)
+- Retention matrix: active people / cohort size x 100. In the retention cell, active is cut to the window, reindexed to months 0-19 (fill 0), and months that have not happened yet are set to NaN. (The raw active matrix has columns 0-17, 19, 20: month 18 is missing because nobody ordered then, and month 20 comes from 2016 cohorts; the reindex fixes both.) Heatmap drops month 0 and uses vmax = 1.0.
 - RFM: snapshot = last valid order + 1 day = 2018-09-04 09:06:57. recency_days = days since last order; frequency = orders; monetary = sum of order_value over all valid orders (includes valid orders not yet delivered). r_score and m_score are quintiles via rank(method="first") (18,998 people each; ties split by row order); f_band = 1 / 2 / 3+.
 - Segment rules (my own, not a standard; first match wins): Champions = repeat buyer and r_score >= 4; Loyal = other repeat buyers; New customers = one order and r_score >= 4; At risk = one order, r_score 2-3 and m_score >= 4; About to lose = one order, r_score 2-3, lower spend; Lost = one order, r_score 1.
 - Mann-Whitney: delivered orders only (order_status == 'delivered'), with review and is_late; two-sided.
+- Chi-square (scipy chi2_contingency, default continuity correction on 2x2) on f = first orders that are delivered with is_late not null (85,698 on time + 7,595 late = 93,293 people); repeat = person_total_orders > 1. Robustness: first orders from 2017-01-01 to before 2018-03-01 (6+ months to return). Review-score test: f with a review score (92,678 people), Cramer's V as effect size.
+- State table: f grouped by customer_state, kept if 500+ customers (17 states, 90,835 customers); late_pct and repeat_pct.
+- Closing summary markdown cell at the end (written 16 Nov).
 
 ## Key decisions (with reasons)
 - MySQL chosen because MySQL Workbench was already installed. Requires 8.0+ for CTEs and window functions.
@@ -102,12 +109,14 @@ Root files: README.md, PROJECT_CONTEXT.md, .env (git-ignored), .env.example, .gi
 - The server also holds unrelated databases (abc, atliq_tshirts, companydb, emp, mysql, parks_and_recreation, sakila, std, world). Never modify them.
 - RFM Frequency uses fixed bands (1, 2, 3+) because 96.96% of people have one order; Recency and Monetary use quintiles. Segment rules are my own choice and are stated in the notebook.
 - Mann-Whitney (not a t-test) for review scores: whole numbers 1-5, heavily piled at 5 and skewed. Effect size reported as the probability that a random on-time order scores higher than a random late one (ties as half).
+- Repeat-rate gaps tested with chi-square; the robustness check uses first orders with 6+ months to return because late-in-period customers had less time to come back.
+- Lean plan (16 Nov 2026): skip XGBoost, K-Means, SHAP, drill-through and a third dashboard page; keep 3 window-function queries, logistic regression + random forest, a 2-page Power BI dashboard, README, 1-page summary, 2-minute video. Reason: the user lost interest and must be able to explain the project.
 
 ## Key findings so far (all computed from the data)
 Profiling (sql/04):
 - 99,441 orders, 2016-09-04 to 2018-10-17. 2016 nearly empty (November missing); real volume from 2017-01; peak 2017-11; 2018-09/10 tiny (16 and 4).
 - Status: delivered 96,478 (97.0%); shipped 1,107; canceled 625; unavailable 609; invoiced 314; processing 301; created 5; approved 2.
-- 8 delivered orders have no delivery date; 6 canceled orders have one (confirmed again in notebook 02: 6 canceled orders with a delivery date and a review; cause unknown). In orders, order_approved_at is missing for 160 and order_delivered_carrier_date for 1,783 (not investigated, not used).
+- 8 delivered orders have no delivery date; 6 canceled orders have one (cause unknown; confirmed again in notebook 02). In orders, order_approved_at is missing for 160 and order_delivered_carrier_date for 1,783 (not investigated, not used).
 - Reviews: 99,224 rows, 98,410 distinct review_id, 98,673 distinct order_id; 768 orders without a review; 547 orders have more than one review (202 with differing scores); some review_ids shared across a customer's orders.
 - customer_id is created per order: 99,441 customer_id vs 96,096 people.
 - Orders per person (all statuses): 93,099 of 96,096 (96.88%) have exactly 1 order. Excluding canceled/unavailable: 92,102 of 94,990 (96.96%); 2,888 people (3.04%) ordered more than once.
@@ -122,20 +131,20 @@ Business questions (sql/05):
 - Review score (95,824 reviewed delivered orders): on time 4.29 (88,163); late 2.57 (7,661). By band: up to 3 days 3.59; 4-7 days 2.10; over 7 days 1.70.
 - Repeat rate by first-order delivery (93,291 customers): on time 3.07% (85,697); late 2.52% (7,594). 96.93% of on-time first-order customers also never returned.
 - Repeat rate by first-order review score (92,683 customers): 1 star 2.92%; 2: 2.75%; 3: 2.94%; 4: 2.78%; 5: 3.14%. Range 0.39 points.
-- Repeat rate by state of first order (17 states with 500+ customers): RJ 3.37% highest, CE 1.62% lowest; overall 3.04%. RJ has a high late share and the highest repeat rate, so delivery does not explain state differences.
+- Repeat rate by state of first order (17 states with 500+ customers): RJ 3.37% highest, CE 1.62% lowest; overall 3.04%.
 - Repeat rate by first-item category (21 rows, 1,000+ customers each): fashion_bags_accessories 5.91% highest, electronics 1.65% lowest; range 4.26 points. health_beauty 2.79% and watches_gifts 2.14% are below the 3.04% average.
 
 EDA (notebook 01):
 - Delivery time (96,470 delivered orders): median 10 days, mean 12.5, std 9.6, 75% within 16 days, max 210; 298 orders (about 0.3%) took more than 60 days.
-- Review scores (95,832 reviewed delivered orders, average 4.16): 1 star 9.8%, 2 stars 3.0%, 3 stars 8.3%, 4 stars 19.7%, 5 stars 59.2%. (95,832 does not match the 95,824 used in SQL and notebook 02; not reconciled.)
-- Top 10 states and top 10 categories match SQL Queries 11 and 8 (top 10 states 87.4%, top 10 categories 62.4%, total revenue 15,419,773.75).
+- Review scores (95,832 reviewed delivered orders, average 4.16): 1 star 9.8%, 2 stars 3.0%, 3 stars 8.3%, 4 stars 19.7%, 5 stars 59.2%. (95,832 does not match 95,824 in SQL and notebook 02; not reconciled.)
+- Top 10 states and top 10 categories match SQL Queries 11 and 8.
 
 Cohort retention (notebook 02):
 - 94,990 people have a first valid order; 2,888 (3.04%) ordered again. 98,207 valid orders, so 3,217 repeat orders (about 1.11 per repeat buyer); 1,273 of them (39.6%) fall in the same calendar month as the first order.
 - Largest cohort 2017-11 (7,190 people); 2018 cohorts between 5,920 and 6,951.
 - In the window, no cell after month 0 is above 0.71% (2017-10, month 1). Month 1 is the darkest column for most cohorts; later months sit at roughly 0.1% to 0.4% with no second wave. Strongest month 1: 2017-08 0.68%, 2017-09 0.69%, 2017-10 0.71%. Weakest: 2017-12 0.22%, 2017-02 0.24%. 2018 cohorts month 1: 0.33% to 0.58%.
-- Old cohorts are small, so cells beyond month 10 swing with one person (one person = 0.13 points in the 752-person 2017-01 cohort; 2017-01 shows 0.66% in month 12 and 0.00% in months 9 and 18; 2017-02 also 0.00% in month 18). Treat as noise.
-- Caveat: each cell counts people active in that month, not people who ever returned, so the matrix understates total repeat buyers. Differences between cohorts not significance-tested.
+- Old cohorts are small, so cells beyond month 10 swing with one person (one person = 0.13 points in the 752-person 2017-01 cohort; 0.66% in month 12 but 0.00% in months 9 and 18). Treat as noise.
+- Caveat: each cell counts people active in that month, not people who ever returned. Differences between cohorts not significance-tested.
 
 RFM (notebook 02; 94,990 people; monetary total 15,735,527.03, which is 315,753.28 above delivered-only revenue; likely because it includes valid orders not yet delivered, not split by status):
 - Recency: median 224 days (1 to 729). Spend per person: median 107.90, mean 165.65, max 13,664.08. 7 people have monetary 0. Most orders by one person: 16.
@@ -147,33 +156,44 @@ RFM (notebook 02; 94,990 people; monetary total 15,735,527.03, which is 315,753.
   - About to lose: 22,659 (23.85%), 1,642,809.82 (10.44%); avg recency 273.5 days, avg spend 72.50
   - Loyal: 1,646 (1.73%), 491,200.66 (3.12%); avg recency 326.5 days, avg spend 298.42
   - Champions: 1,242 (1.31%), 399,057.84 (2.54%); avg recency 94.0 days, avg spend 321.30
-- Repeat buyers (Champions + Loyal) are 3.04% of people and 5.66% of monetary value. At risk is 14.89% of people but 26.52% of value (about 1.8 times the average per person); About to lose is the reverse.
+- Repeat buyers (Champions + Loyal) are 3.04% of people and 5.66% of monetary value. At risk is 14.89% of people but 26.52% of value; About to lose is the reverse.
 - Hypothesis (untested): At risk is the best group for a win-back experiment with a control group; About to lose is a weak target (low spend). Past spend does not mean they will return.
 
 Delivery impact on reviews (notebook 02, Mann-Whitney, two-sided, delivered orders only; counts match SQL exactly):
-- 95,824 reviewed delivered orders: on time 88,163 (mean 4.29, median 5.0); late 7,661 (mean 2.57, median 2.0). U = 524,647,305; p < 0.001. Effect size: a random on-time order scores higher than a random late one 77.7% of the time (50% = no difference; ties as half). Large association; not proof of cause.
+- 95,824 reviewed delivered orders: on time 88,163 (mean 4.29, median 5.0); late 7,661 (mean 2.57, median 2.0). U = 524,647,305; p < 0.001. Effect size: a random on-time order scores higher than a random late one 77.7% of the time (50% = no difference; ties as half).
 
-EDA story so far: delivery strongly affects review score, but delivery and review score barely move repeat purchase (SQL: 3.07% vs 2.52%; 1 star 2.92% vs 5 stars 3.14%); first-purchase category moves repeat rate most; top-revenue categories are not the best retainers. All repeat-rate differences are associations and NOT yet significance-tested (18b pending).
+Delivery impact on repeat buying (notebook 02, chi-square):
+- First orders, delivered, with is_late (93,293 people): on time 2,633 of 85,698 repeat (3.07%); late 192 of 7,595 (2.53%). chi2 = 6.86, p = 0.0088; gap 0.54 points (about 18% lower in relative terms). 97.5% of late and 96.9% of on-time customers never ordered again. (SQL gave 85,697 / 7,594 and 2.52% for late: 1 person per group, cause not checked.)
+- Robustness (first orders 2017-01 to 2018-02, 6+ months to return): on time 2,083 of 50,969 (4.09%); late 137 of 4,258 (3.22%). chi2 = 7.47, p = 0.0063; gap 0.87 points (about 21% lower). The gap did not shrink, so limited time to return does not explain it; overall rates are higher, so time to return affects the level.
+- Review score vs repeat (92,678 people; SQL had 92,683): 2.91% (1 star), 2.69% (2), 2.99% (3), 2.78% (4), 3.15% (5). chi2 = 8.29, dof 4, p = 0.082; Cramer's V = 0.0095. Not significant, effect near zero. "Not significant" does not prove no effect.
+
+State view (notebook 02; 17 states with 500+ delivered first-order customers, 90,835 people; customers, late %, repeat %):
+- MA 697, 19.66, 2.15; CE 1,257, 15.51, 1.67; BA 3,157, 14.06, 2.88; RJ 11,898, 13.46, 3.32; ES 1,926, 12.31, 2.91; PA 921, 12.16, 2.39; MS 680, 11.62, 2.65; PB 503, 11.13, 2.39; PE 1,547, 10.86, 2.33; SC 3,443, 9.82, 2.67; GO 1,893, 8.29, 3.17; RS 5,163, 7.24, 3.12; MT 855, 7.02, 3.39; DF 2,016, 6.80, 2.98; SP 39,120, 5.92, 3.13; MG 10,994, 5.65, 2.98; PR 4,765, 5.02, 2.94.
+- AL, PI and SE (high late share in SQL Query 13) fall below 500 customers here. This 17-state set differs from SQL Query 18 (RJ 3.37% highest there; MT 3.39% here); not reconciled. Not a statistical test (17 points; small states swing with a few people).
+- RJ has a high late share and one of the highest repeat rates, so delivery does not explain state differences.
+
+STORY SO FAR: about 97% buy once, at every cohort age, with no second wave. Late delivery strongly lowers review scores and is linked to a small but significant drop in repeat buying; review score itself does not separate repeaters. Repeat buyers are 3.04% of people and 5.66% of spend; At risk is the best win-back test group. First-purchase category has the biggest repeat-rate spread (1.65% to 5.91%) but is NOT yet significance-tested. All results are associations; groups may differ in state, seller and product mix.
+
+Recommendations (hypotheses to test, from the closing summary): (1) win-back experiment on At risk with a control group; (2) logistics work in MA, CE, BA, RJ to protect review scores; (3) do not expect on-time delivery alone to fix retention; also test first-purchase offers and category campaigns.
 
 ## Open issues
-- Significance of the repeat-rate gaps is untested (Step 18b next). Late-in-period customers had less time to return; groups may differ in timing, state and product mix.
-- Reasons not known: why 299 orders differ between payments and items; why SP has lower revenue per order; the 6 canceled orders with a delivery date; the one delivered order without a payment; why categories differ in repeat rate; why no cohorts exist for 2018-09/10.
-- Notebook 01 reports 95,832 reviewed delivered orders vs 95,824 in SQL and notebook 02: not reconciled.
-- The 315,753.28 gap between RFM monetary and delivered revenue is not split by status.
-- 7 people with monetary 0 versus 8 valid orders without items (so at least one such person has another order with a value): not checked.
-- Person with 16 orders (17 including canceled/unavailable) not investigated.
-- Total number of review_ids shared across orders not measured; revenue share without a category not measured.
+- Category repeat-rate gap (1.65% to 5.91%), state gaps and cohort differences are NOT significance-tested. Repeat rate by lateness band not done.
+- Small count differences vs SQL, causes not checked: 85,698 / 7,595 vs 85,697 / 7,594; 92,678 vs 92,683; notebook 01 shows 95,832 reviewed delivered orders vs 95,824 elsewhere; state table set differs from SQL Query 18.
+- Reasons not known: why 299 orders differ between payments and items; why SP has lower revenue per order; the 6 canceled orders with a delivery date; the one delivered order without a payment; why categories differ in repeat rate; why no cohorts exist for 2018-09/10; why 160 orders lack an approval date and 1,783 a carrier date.
+- The 315,753.28 gap between RFM monetary and delivered revenue is not split by status. 7 people with monetary 0 versus 8 valid orders without items: not checked.
+- Person with 16 orders (17 including canceled/unavailable) not investigated. Total number of review_ids shared across orders not measured; revenue share without a category not measured.
 - scripts/load_data.py will fail if re-run now (foreign keys need parents loaded first). Fix before any re-run.
 - Query 20 (late sellers) deferred to the dashboard Operations page. Pivot tables not practised (can be done on orders_enriched).
 
 ## Next task
-1. Run git status -sb and git log --oneline -8; confirm all notebook 02 work is committed and pushed (and the earlier EDA charts 4-5 commit). Save the Word notes (add a 26 Oct row).
-2. Step 18b in notebook 02: chi-square test of the repeat-rate gap, on time vs late. Use first (order_number == 1), filtered to order_status == 'delivered' and is_late not null; repeat = person_total_orders > 1; pd.crosstab, then scipy.stats.chi2_contingency. Expected counts close to SQL (85,697 and 7,594 people; 3.07% and 2.52%). Report the effect size (difference in points) next to p; say association, not cause; mention late-in-period customers had less time to return.
-3. Repeat rate by delivery experience and by review score (with significance), and the worst states for late delivery (use 500+ customer rule); add a closing summary cell with findings and recommendations.
-4. Replicate pieces in SQL with window functions (LAG for time between orders, ROW_NUMBER, RANK, running totals) in sql/06_window_functions.sql.
-5. End of Phase 3: update README (findings, approach), this file, and the Word notes.
+1. Run git status -sb and git log --oneline -8; commit and push anything left (review-score test, state table, closing summary, README, this file). Re-run notebook 02 with Run All if the kernel was restarted.
+2. Step 19: create sql/06_window_functions.sql with 3 queries. Query 1: ROW_NUMBER() OVER (PARTITION BY customer_unique_id ORDER BY order_purchase_timestamp) on orders joined to customers, status NOT IN ('canceled','unavailable'); expected 98,207 orders, 94,990 people, 94,990 first orders, 3,217 repeat orders. Query 2: LAG for days between orders of repeat buyers (3,217 repeat orders, 2,888 people). Query 3: running total of monthly delivered revenue (price + freight). Each with an INSIGHT comment.
+3. Phase 4 (lean), notebooks/03_modeling.ipynb: target = repeat buyer (person_total_orders > 1); use only information known at or shortly after the first order (avoid leakage); features such as order value, freight ratio, items, payment type, installments, delay, review score, category, state; stratified split; logistic regression and random forest; ROC-AUC, precision, recall, F1 (not accuracy; about 3% positives); feature importance; honest limitations. Consider restricting to first orders with 6+ months to return (before 2018-03-01) so the target is fair.
+4. Phase 5 (lean): 2-page Power BI dashboard, about 5 DAX measures, slicers; screenshots to images/.
+5. Phase 6 (lean): README findings and recommendations, 1-page business summary PDF in reports/, 2-minute video, requirements.txt, resume bullets, LinkedIn post.
+6. Update README, this file and the Word notes at the end of each phase.
 
 ## Reminders
-- Commit after each working step with a clear message.
+- Commit after each working step with a clear message; push at the end of a step group.
 - Update the README at the end of each phase.
 - Update the Word notes at the end of each working day or phase, with a new row in its Update log. Claude reminds.
